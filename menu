@@ -1,0 +1,9 @@
+import tarea23 as tarea
+
+def obtener_url():
+    enlace = input("Ingrese la URL: ")
+    enlace_nuevo = tarea.verificar_enlace(enlace)
+    tarea.descargar_contenido(enlace_nuevo)
+
+if __name__ == '__main__':
+    obtener_url()
