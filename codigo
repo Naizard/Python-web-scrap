@@ -1,0 +1,59 @@
+import requests, os, bs4
+
+def verificar_enlace(enlace):
+    if enlace.startswith("http://") or enlace.startswith("https://"):
+        return enlace
+    else:
+        return "http://" + enlace
+
+def descargar_imagen(url_imagen, enlace_nuevo):
+    print('Descargando imagen %s...' % (url_imagen))
+    respuesta = requests.get(url_imagen)
+    if respuesta.status_code == 200:
+        archivo_imagen = open(os.path.join('directorio_imagenes', os.path.basename(url_imagen)), 'wb')
+        for fragmento in respuesta.iter_content(100000):
+            archivo_imagen.write(fragmento)
+        archivo_imagen.close()
+
+def descargar_pdf(url_pdf):
+    print('Descargando PDF %s...' % (url_pdf))
+    respuesta = requests.get(url_pdf)
+    if respuesta.status_code == 200:
+        nombre_pdf = os.path.basename(url_pdf)
+        with open(os.path.join('directorio_pdfs', nombre_pdf), 'wb') as archivo_pdf:
+            archivo_pdf.write(respuesta.content)
+        print("Archivo", nombre_pdf, "descargado")
+
+def descargar_contenido(enlace_nuevo):
+    os.makedirs('directorio_imagenes', exist_ok=True)
+    os.makedirs('directorio_pdfs', exist_ok=True)
+    print('Descargando contenido de la página %s...' % enlace_nuevo)
+    respuesta = requests.get(enlace_nuevo)
+    soup = bs4.BeautifulSoup(respuesta.text, "html.parser")
+    
+    imagenes = soup.find_all('img')
+    if not imagenes:
+        print('No se encontraron imágenes.')
+    else:
+        for imagen in imagenes:
+            url_imagen = imagen.get('src')
+            if url_imagen.startswith("http"):
+                descargar_imagen(url_imagen, enlace_nuevo)
+            else:
+                url_imagen = enlace_nuevo + url_imagen
+                descargar_imagen(url_imagen, enlace_nuevo)
+    
+    enlaces = soup.find_all('a')
+    with open("enlaces.txt", "w") as f:
+        for enlace in enlaces:
+            url_enlace = enlace.get("href")
+            if url_enlace:
+                f.write(url_enlace + "\n")
+        print("Enlaces guardados correctamente")
+
+    pdfs = soup.find_all('a')
+    for pdf in pdfs:
+        url_pdf = pdf.get('href')
+        if url_pdf and '.pdf' in url_pdf:
+            descargar_pdf(url_pdf)
+    print("Todos los PDFs han sido descargados")
